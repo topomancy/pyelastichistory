@@ -18,8 +18,7 @@ class ElasticHistory(ElasticSearch):
             "index": index,
             "type": doc_type,
             "id": id,
-            "revisions": [],
-            "branches": {}
+            "revisions": []
         }
         try:
             history_result = self.get(history_index, doc_type, id)
@@ -63,11 +62,9 @@ class ElasticHistory(ElasticSearch):
             if revisions[i]["digest"] == revision:
                 branch_point = i
                 break
-        branch = history["revisions"][branch_point+1:]
-        if not branch:
+        if branch_point is None:
+            raise ValueError("Document does not have revision %s" % revision)
+        if branch_point == len(revisions) - 1:
             raise ValueError("Cannot rollback to the current revision")
-        history["branches"].setdefault(revision, [])
-        history["branches"][revision].append(branch)
-        del history["revisions"][branch_point+1:]
-        self._write_history(history, index, doc_type, id)
-        self.index(self.revision(index, revision), index, doc_type, id)
+        previous_version = self.revision(index, revision)["_source"]
+        self.index(previous_version, index, doc_type, id)
