@@ -21,9 +21,9 @@ setup(
     name="pyelastichistory",
     version=find_version("pyelastichistory.py"),
     description="Document history tracking in ElasticSearch.",
-    long_description=read('README.rst'),
+    #long_description=read('README.rst'),
     author='Schuyler Erle',
-    author_email='schuyler@nocat.net',
+    author_email='schuyler@topomancy.com',
     py_modules=['pyelastichistory'],
     classifiers=[
         'Development Status :: 3 - Alpha',
@@ -34,7 +34,7 @@ setup(
         'Topic :: Internet :: WWW/HTTP :: Indexing/Search'
     ],
     requires=[
-        'pyelasticsearch>=0.1.0',
+        'pyelasticobjects(>=0.1.0)',
     ],
     test_suite='tests',
     url='http://github.com/schuyler/pyelastichistory'

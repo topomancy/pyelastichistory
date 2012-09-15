@@ -1,1 +1,2 @@
+-e git+ssh://git@topomancy.com/srv/git/pyelasticobjects.git#egg=pyelasticobjects
 pyelasticsearch

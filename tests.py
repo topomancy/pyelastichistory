@@ -20,6 +20,10 @@ class ElasticHistoryTestCase(unittest.TestCase):
 
     def assertResultContains(self, result, expected):
         for (key, value) in expected.items():
+            self.assertEquals(value, getattr(result, key))
+
+    def assertDocumentContains(self, result, expected):
+        for (key, value) in expected.items():
             self.assertEquals(value, result[key])
 
 class IndexingTestCase(ElasticHistoryTestCase):
@@ -27,12 +31,11 @@ class IndexingTestCase(ElasticHistoryTestCase):
         start = time.time()
         result = self.conn.index({"name":"Joe Tester"}, "test-index", "test-type", 1,
                 metadata={"user_created": "Jane Editor"})
-        self.assertResultContains(result, {'_type': 'test-type', '_id': '1',
-            'ok': True, '_index': 'test-index' })
+        self.assertResultContains(result, {'type': 'test-type', 'id': '1',
+            'ok': True, 'index': 'test-index' })
 
-        result = self.conn.history("test-index", "test-type", 1)
-        history = result["_source"]
-        self.assertResultContains(history, {
+        history = self.conn.history("test-index", "test-type", 1)
+        self.assertDocumentContains(history, {
             "index": "test-index",
             "type": "test-type",
             "id": "1"
@@ -46,18 +49,17 @@ class IndexingTestCase(ElasticHistoryTestCase):
         self.assertEqual(metadata["user_created"], "Jane Editor")
 
         revision = self.conn.revision("test-index", metadata["digest"])
-        self.assertResultContains(revision["_source"], {"name": "Joe Tester"})
+        self.assertDocumentContains(revision, {"name": "Joe Tester"})
 
     def testIndexingWithoutID(self):
         result = self.conn.index({"name":"Joe Tester"}, "test-index", "test-type",
                 metadata={"user_created": "Jane Editor"})
-        self.assertResultContains(result, {'_type': 'test-type',
-            'ok': True, '_index': 'test-index' })
-        id = result["_id"]
+        self.assertResultContains(result, {'type': 'test-type',
+            'ok': True, 'index': 'test-index' })
+        id = result.id
 
-        result = self.conn.history("test-index", "test-type", id)
-        history = result["_source"]
-        self.assertResultContains(history, {
+        history = self.conn.history("test-index", "test-type", id)
+        self.assertDocumentContains(history, {
             "index": "test-index",
             "type": "test-type",
             "id": id
@@ -67,14 +69,14 @@ class IndexingTestCase(ElasticHistoryTestCase):
         metadata = history["revisions"][0]
         self.assertEqual(metadata["user_created"], "Jane Editor")
         revision = self.conn.revision("test-index", metadata["digest"])
-        self.assertResultContains(revision["_source"], {"name": "Joe Tester"})
+        self.assertDocumentContains(revision, {"name": "Joe Tester"})
 
     def testRevisionTracking(self):
         self.conn.index({"name":"Joe Tester"}, "test-index", "test-type", 1,
                 metadata={"user_created": "Jane Editor"})
         self.conn.index({"name":"Joe Q. Tester"}, "test-index", "test-type", 1,
                 metadata={"user_created": "Jane J. Editor"})
-        history = self.conn.history("test-index", "test-type", 1)["_source"]
+        history = self.conn.history("test-index", "test-type", 1)
         self.assertEqual(len(history["revisions"]), 2)
 
         meta1, meta2 = history["revisions"]
@@ -84,21 +86,21 @@ class IndexingTestCase(ElasticHistoryTestCase):
         self.assertEqual(meta2["user_created"], "Jane J. Editor")
 
         revision = self.conn.revision("test-index", meta2["digest"])
-        self.assertResultContains(revision["_source"], {"name": "Joe Q. Tester"})
+        self.assertDocumentContains(revision, {"name": "Joe Q. Tester"})
 
     def testRollback(self):
         self.conn.index({"name":"Joe Tester"}, "test-index", "test-type", 1)
         self.conn.index({"name":"Joe Q. Tester"}, "test-index", "test-type", 1)
         self.conn.index({"name":"Joe Q. Tester, Esq."}, "test-index", "test-type", 1)
         current = self.conn.get("test-index", "test-type", 1)
-        self.assertEqual(current["_source"]["name"], "Joe Q. Tester, Esq.")
+        self.assertEqual(current["name"], "Joe Q. Tester, Esq.")
 
-        history = self.conn.history("test-index", "test-type", 1)["_source"]
+        history = self.conn.history("test-index", "test-type", 1)
         self.conn.rollback("test-index", "test-type", 1, history["revisions"][0]["digest"])
         current = self.conn.get("test-index", "test-type", 1)
-        self.assertEqual(current["_source"]["name"], "Joe Tester")
+        self.assertEqual(current["name"], "Joe Tester")
 
-        history = self.conn.history("test-index", "test-type", 1)["_source"]
+        history = self.conn.history("test-index", "test-type", 1)
         self.assertEqual(len(history["revisions"]), 4)
         self.assertEqual(history["revisions"][0]["digest"],
                          history["revisions"][-1]["digest"])
