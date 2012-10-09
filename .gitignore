@@ -1,5 +1,6 @@
 .Python
 bin
+local
 include
 lib
 dist
