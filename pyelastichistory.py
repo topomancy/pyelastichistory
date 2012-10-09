@@ -1,6 +1,6 @@
-from pyelasticsearch import ElasticSearchError, json
+from pyelasticsearch import ElasticHttpError
 from pyelasticobjects import ObjectSearch
-import time, hashlib, difflib
+import time, hashlib, difflib, json
 
 __author__ = 'Schuyler Erle'
 __all__ = ['ElasticHistory']
@@ -14,11 +14,11 @@ class ElasticHistory(ObjectSearch):
     def _revision_type(self):
         return "revision"
 
-    def index(self, doc, index, doc_type, id=None,
+    def index(self, index, doc_type, doc, id=None,
             force_insert=False, metadata={}):
         history_index = self._history_index(index)
         result = super(ElasticHistory, self).index(
-                doc, index, doc_type, id, force_insert)
+                 index, doc_type, doc, id, force_insert)
         id = result.id
         history = {
             "index": index,
@@ -28,7 +28,7 @@ class ElasticHistory(ObjectSearch):
         }
         try:
             history = self.get(history_index, doc_type, id)
-        except ElasticSearchError:
+        except ElasticHttpError:  #possibly ElasticHttpNotFoundError?
             pass
         # FIXME: remove this when pyelasticsearch uses self.from_python internally
         converted = self.from_python(doc)
@@ -37,17 +37,17 @@ class ElasticHistory(ObjectSearch):
         metadata["created_at"] = time.time()
         metadata["digest"] = digest
         history["revisions"].append(metadata)
-        self._write_history(history, index, doc_type, id)
+        self._write_history(index, doc_type, history,  id)
         # FIXME: remove this when pyelasticsearch uses self.from_python internally
         super(ElasticHistory, self).index(
-                converted, history_index, self._revision_type(), digest)
+                history_index, self._revision_type(), converted, digest)
         return result
 
-    def _write_history(self, history, index, doc_type, id):
+    def _write_history(self, index, doc_type, history, id):
         # FIXME: remove this when pyelasticsearch uses self.from_python internally
         converted = self.from_python(history)
         super(ElasticHistory, self).index( 
-                converted, self._history_index(index), doc_type, id)
+                 self._history_index(index), doc_type, converted, id)
         
     def history(self, index, doc_type, id):
         return self.get(self._history_index(index), doc_type, id)
@@ -79,4 +79,4 @@ class ElasticHistory(ObjectSearch):
         previous_version = self.revision(index, revision)
         # FIXME: remove this when pyelasticsearch uses self.from_python internally
         converted = self.from_python(previous_version)
-        self.index(converted, index, doc_type, id)
+        self.index(index, doc_type, converted, id)

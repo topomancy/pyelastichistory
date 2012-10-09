@@ -29,8 +29,7 @@ class ElasticHistoryTestCase(unittest.TestCase):
 class IndexingTestCase(ElasticHistoryTestCase):
     def testIndexingWithID(self):
         start = time.time()
-        result = self.conn.index({"name":"Joe Tester"}, "test-index", "test-type", 1,
-                metadata={"user_created": "Jane Editor"})
+        result = self.conn.index("test-index", "test-type", {"name": "Joe Tester"},1, metadata={"user_created": "Jane Editor"})
         self.assertResultContains(result, {'type': 'test-type', 'id': '1',
             'ok': True, 'index': 'test-index' })
 
@@ -52,8 +51,7 @@ class IndexingTestCase(ElasticHistoryTestCase):
         self.assertDocumentContains(revision, {"name": "Joe Tester"})
 
     def testIndexingWithoutID(self):
-        result = self.conn.index({"name":"Joe Tester"}, "test-index", "test-type",
-                metadata={"user_created": "Jane Editor"})
+        result = self.conn.index("test-index", "test-type", {"name": "Joe Tester"},1, metadata={"user_created": "Jane Editor"})
         self.assertResultContains(result, {'type': 'test-type',
             'ok': True, 'index': 'test-index' })
         id = result.id
@@ -72,11 +70,10 @@ class IndexingTestCase(ElasticHistoryTestCase):
         self.assertDocumentContains(revision, {"name": "Joe Tester"})
 
     def testRevisionTracking(self):
-        self.conn.index({"name":"Joe Tester"}, "test-index", "test-type", 1,
-                metadata={"user_created": "Jane Editor"})
-        self.conn.index({"name":"Joe Q. Tester"}, "test-index", "test-type", 1,
-                metadata={"user_created": "Jane J. Editor"})
+        self.conn.index("test-index", "test-type", {"name": "Joe Tester"},1, metadata={"user_created": "Jane Editor"})
+        self.conn.index("test-index", "test-type", {"name": "Joe Q. Tester"},1, metadata={"user_created": "Jane J. Editor"})
         history = self.conn.history("test-index", "test-type", 1)
+        
         self.assertEqual(len(history["revisions"]), 2)
 
         meta1, meta2 = history["revisions"]
@@ -89,9 +86,9 @@ class IndexingTestCase(ElasticHistoryTestCase):
         self.assertDocumentContains(revision, {"name": "Joe Q. Tester"})
 
     def testRollback(self):
-        self.conn.index({"name":"Joe Tester"}, "test-index", "test-type", 1)
-        self.conn.index({"name":"Joe Q. Tester"}, "test-index", "test-type", 1)
-        self.conn.index({"name":"Joe Q. Tester, Esq."}, "test-index", "test-type", 1)
+        self.conn.index("test-index", "test-type", {"name": "Joe Tester"},1)
+        self.conn.index("test-index", "test-type", {"name": "Joe Q. Tester"},1)
+        self.conn.index("test-index", "test-type", {"name": "Joe Q. Tester, Esq."},1)
         current = self.conn.get("test-index", "test-type", 1)
         self.assertEqual(current["name"], "Joe Q. Tester, Esq.")
 
