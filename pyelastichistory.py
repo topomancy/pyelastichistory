@@ -55,7 +55,7 @@ class ElasticHistory(ObjectSearch):
         #only store a doc if one was there previously
         if last_doc:
             converted_last = self.from_python(last_doc)
-            last_digest = hashlib.sha1(json.dumps(converted_last, sort_keys=True)).hexdigest()
+            last_digest = history["revisions"][len(history["revisions"])-2]["digest"]
 
             super(ElasticHistory, self).index(
                     history_index, self._revision_type(), converted_last, last_digest)
