@@ -96,7 +96,7 @@ class IndexingTestCase(ElasticHistoryTestCase):
         self.assertEqual(current["name"], "Joe Q. Tester, Esq.")
 
         history = self.conn.history("test-index", "test-type", 1)
-        self.conn.rollback("test-index", "test-type", 1, history["revisions"][0]["digest"])
+        self.conn.rollback("test-index", "test-type", 1, history["revisions"][0]["digest"], metadata={"reason":"testing porpoises"})
         current = self.conn.get("test-index", "test-type", 1)
         self.assertEqual(current["name"], "Joe Tester")
 
@@ -104,6 +104,10 @@ class IndexingTestCase(ElasticHistoryTestCase):
         self.assertEqual(len(history["revisions"]), 4)
         self.assertEqual(history["revisions"][0]["digest"],
                          history["revisions"][-1]["digest"])
+        metadata = history["revisions"][-1]
+        
+        self.assertEqual(metadata["reason"], "testing porpoises")
+       
 
 class IndexingTestCaseStorage(ElasticHistoryTestCase):
 

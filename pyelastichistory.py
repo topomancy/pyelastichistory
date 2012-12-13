@@ -89,7 +89,7 @@ class ElasticHistory(ObjectSearch):
         return difflib.unified_diff(str1, str2,
                 fromfile=digest1, tofile=digest2)
 
-    def rollback(self, index, doc_type, id, revision):
+    def rollback(self, index, doc_type, id, revision, metadata={}):
         history = self.history(index, doc_type, id)
         revisions = history["revisions"]
         branch_point = None
@@ -104,4 +104,4 @@ class ElasticHistory(ObjectSearch):
         previous_version = self.revision(index, doc_type, id, revision)
         # FIXME: remove this when pyelasticsearch uses self.from_python internally
         converted = self.from_python(previous_version)
-        self.index(index, doc_type, converted, id)
+        return self.index(index, doc_type, converted, id, False, metadata)
